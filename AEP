@@ -1,0 +1,900 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <conio.c>
+#include <windows.h>
+#include <locale.h>
+#include <time.h>
+
+void cripto(char *login, char *senha);
+void descripto(char *login, char *senha);
+void cadastro();
+int verif(char *compare, int tipo);
+void adduser(char *login, char *senha);
+void front_inicio();
+void listar(int valor);
+void edit_exclu(int troca);
+void edit_mudar(int esc);
+void reescrita(int val, char *neww, int esc);
+void excluir(int local);
+void janela(char *fr, int li, int lf, int ci, int cf, int cor, int tl, int tc, int pont_supE, int pont_supD, int pont_infE, int pont_infD);
+
+int main()
+{
+  front_inicio();
+  return 0;
+}
+//----------------------------------------------------------------------------------------------------
+void cripto(char *login, char *senha){
+  // salt atribuition--------------------------------------------------------------------------------------------
+  FILE *salt = fopen("Salt.txt", "r");
+
+  int i, x;
+  i = 0;
+  char saltpass[100][7];
+  while (fscanf(salt, "%6s", saltpass[i]) == 1)
+  {
+    i++;
+  } // puxando todos os salts do arquivo txt pra um vetor
+  fclose(salt);
+  srand(time(NULL));
+  x = rand() % 101; // escolhendo um número aleatório para atribuir um dos 100 salts presentes no vetor
+
+  // hash function----------------------------------------------------------------------------------------------
+
+  for (i = 0; i < 9; i++)
+  {
+    login[i] = ((int)login[i] + 1);
+    senha[i] = ((int)senha[i] + 1);
+  }
+
+  adduser(login, senha);
+
+  return;
+}
+//----------------------------------------------------------------------------------------------------
+void descripto(char *login, char *senha)
+{
+  FILE *arquivo = fopen("arquivo_palavra.txt", "r");
+  char aux[9], aux2[9];
+
+  int i;
+  for (i = 0; i < 8; i++)
+  {
+    aux[i] = (char)((int)login[i] - 1); // eng. reversa
+    aux2[i] = (char)((int)senha[i] - 1);
+  } // volta no for pro proximo caractere
+
+  aux[8] = '\0';
+  aux2[8] = '\0';
+  strcpy(login, aux); // inversão da string
+  strcpy(senha,aux2);
+  
+  login[8] = '\0';
+  senha[8] = '\0';
+  fclose(arquivo);
+
+  return;
+}
+//----------------------------------------------------------------------------------------------------
+void janela(char *fr, int li, int lf, int ci, int cf, int cor, int tl, int tc, int pont_supE, int pont_supD, int pont_infE, int pont_infD)
+{
+  // linha com x e tracejada: janela("OPTIONS",8,20,2,17,WHITE,45,124,120,120,120,120);
+  // com faixas: janela("oi",2,6,2,6,YELLOW,196,179,218,191,192,217);
+  textcolor(cor);
+  gotoxy(ci, li);
+  for (int i = ci; i <= cf + 1; i++)
+  { // essa aq é a faixa superior
+    printf("%c", tl);
+  }
+  gotoxy(ci, lf);
+  for (int i = ci; i <= cf + 1; i++)
+  { // faixa inferior
+    printf("%c", tl);
+  }
+  for (int i = li + 1; i < lf; i++)
+  { // coluna esquerda
+    gotoxy(ci, i);
+    printf("%c", tc);
+  }
+
+  for (int i = li + 1; i < lf; i++)
+  { // coluna direita
+    gotoxy(cf + 1, i);
+    printf("%c", tc);
+  }
+  gotoxy(ci, li);
+  printf("%c", pont_supE); // canto superior esquerdo
+
+  gotoxy(cf + 1, li);
+  printf("%c", pont_supD); // superior direito
+
+  gotoxy(ci, lf);
+  printf("%c", pont_infE); // canto inferior esquerdo
+
+  gotoxy(cf + 1, lf);
+  printf("%c", pont_infD); // canto inferior direito
+
+  gotoxy(ci + 2, li);
+  printf("%s", fr);
+}
+//----------------------------------------------------------------------------------------------------------------
+void front_inicio(){
+  _setcursortype(_NOCURSOR);
+  int esc = 1; // Iniciar na opção 1
+  while (1)
+  {
+    system("cls");
+    janela("OPTIONS", 8, 20, 2, 17, WHITE, 45, 124, 120, 120, 120, 120);
+
+    for (int i = 1; i <= 6; i++)
+    { // Mostrar opções
+      if (i != esc)
+      {
+        textbackground(BLACK);
+        textcolor(WHITE);
+      }
+      else if (i == esc)
+      {
+        textbackground(WHITE);
+        textcolor(BLACK);
+      }
+
+      gotoxy(4, 10 + (i - 1) * 2);
+      switch (i)
+      {
+      case 1:
+        printf("REGISTRAR  ");
+        break;
+      case 2:
+        printf("EXCLUIR   ");
+        break;
+      case 3:
+        printf("LISTAR    ");
+        break;
+      case 4:
+        printf("EDITAR    ");
+        break;
+      case 5:
+        printf("RETORNAR   ");
+        break;
+      }
+    }
+
+    char ch = getch(); // Seleciona tecla
+    if ((ch == 'w' || ch == 'W') && esc > 1)
+      esc--; // Tecla 'w' para cima
+    else if ((ch == 's' || ch == 'S') && esc < 5)
+      esc++; // Tecla 's' para baixo
+    else if (ch == '\r')
+      break; // Enter para selecionar
+  }
+
+  switch (esc)
+  {
+  case 1:
+    cadastro();
+    break;
+  case 2:
+    edit_exclu(1);
+    break;
+  case 3:
+    listar(0);
+    break;
+  case 4:
+    edit_exclu(0);
+    break;
+  case 5:
+    system("cls");
+    gotoxy(25, 10);
+    textcolor(WHITE);
+    printf("FINALIZANDO...\n");
+    return;
+    break;
+  }
+  getch(); // Espera uma tecla antes de sair
+}
+//----------------------------------------------------------------------------------------------------
+void cadastro()
+{ // cadastro das pessoas para add no txt]
+  // janela("OPTIONS",8,20,2,17,WHITE,45,124,120,120,120,120);
+  // com faixas: janela("oi",2,6,2,6,YELLOW,196,179,218,191,192,217);
+  system("cls");
+  _setcursortype(_NORMALCURSOR);
+  int esc = 0;
+
+  while (esc != 1)
+  {
+    char login[15];
+    char senha[15];
+    char confsenha[15];
+    int comparador;
+    janela("CADASTRO", 2, 24, 36, 78, CYAN, 196, 179, 218, 191, 192, 217);
+    janela("Login(Deve ter 8 digitos)", 5, 7, 38, 76, CYAN, 45, 124, 120, 120, 120, 120);
+    janela("Senha(Deve ter 8 digitos)", 10, 12, 38, 76, CYAN, 45, 124, 120, 120, 120, 120);
+    janela("Confirme-Senha", 15, 17, 38, 76, CYAN, 45, 124, 120, 120, 120, 120);
+    do
+    {
+      gotoxy(39, 6);
+      printf("              ");
+      gotoxy(39, 6);
+      gets(login);
+      login[strlen(login)] = '\0';
+      gotoxy(39, 8);
+      comparador = verif(login, 0);
+    } while (comparador != 0);
+
+    do
+    {
+      gotoxy(39, 18);
+      printf("              ");
+      gotoxy(39, 11);
+      printf("              ");
+      gotoxy(39, 11);
+      gets(senha);
+      senha[strlen(senha)] = '\0';
+      gotoxy(39, 13);
+      comparador = verif(senha, 1);
+    } while (comparador != 0);
+
+    do
+    {
+      gotoxy(39, 13);
+      printf("              ");
+      gotoxy(39, 16);
+      printf("              ");
+      gotoxy(39, 16);
+      gets(confsenha);
+      confsenha[strlen(confsenha)] = '\0';
+      gotoxy(39, 18);
+      comparador = 1;
+      if (strcmp(senha, confsenha) == 0)
+      {
+        FILE *salt = fopen("Salt.txt", "r");
+        char saltpass[100][7];
+        int i = 0;
+        while (fscanf(salt, "%6s", saltpass[i]) == 1)
+        {
+          i++;
+        } // puxando todos os salts do arquivo txt pra um vetor
+        fclose(salt);
+        srand(time(NULL));
+        int x = rand() % 101; // escolhendo um número aleatório para atribuir um dos 100 salts presentes no vetor
+        
+        // hash function----------------------------------------------------------------------------------------------
+        strcat(login,saltpass[x]);
+        strcat(senha,saltpass[x]);
+  
+        comparador = 0;
+        printf("Registro feito com sucesso");
+        cripto(login, senha);
+      }
+      else
+      {
+        printf("senhas diferentes");
+      }
+    } while (comparador != 0);
+
+    printf("\n");
+    while (1)
+    {
+      _setcursortype(_NOCURSOR);
+      janela("", 19, 21, 48, 65, BLUE, 196, 179, 218, 191, 192, 217);
+      gotoxy(49, 20);
+      printf("DESEJA CONTINUAR?");
+
+      janela("", 21, 23, 37, 42, BLUE, 45, 124, 120, 120, 120, 120);
+      gotoxy(38, 22);
+      if (esc == 0)
+      {
+        textbackground(CYAN);
+        textcolor(BLACK);
+        printf("SIM ");
+        textbackground(BLACK);
+        textcolor(WHITE);
+      }
+      else if (esc != 0)
+      {
+        textbackground(BLACK);
+        textcolor(CYAN);
+        printf("SIM ");
+      }
+      janela("", 21, 23, 71, 75, BLUE, 45, 124, 120, 120, 120, 120);
+      gotoxy(72, 22);
+      if (esc == 1)
+      {
+        textbackground(CYAN);
+        textcolor(BLACK);
+        printf("NAO ");
+        textbackground(BLACK);
+        textcolor(CYAN);
+      }
+      else if (esc != 1)
+      {
+        textbackground(BLACK);
+        textcolor(CYAN);
+        printf("NAO");
+      }
+      char ch = getch();
+      if ((ch == 'a' || ch == 'A') && esc == 1)
+        esc--;
+      else if ((ch == 'd' || ch == 'D') && esc == 0)
+        esc++;
+      else if (ch == '\r')
+        break;
+    }
+  }
+  return front_inicio();
+}
+//----------------------------------------------------------------------------------------------------
+void adduser(char *login, char *senha)
+{ // add pessoas no txt
+  FILE *arqv = fopen("arquivo_palavra", "a");
+  fprintf(arqv, "%s ", login);
+  fprintf(arqv, "%s\n", senha);
+
+  fclose(arqv);
+  return;
+}
+//----------------------------------------------------------------------------------------------------
+int verif(char *compare, int tipo)
+{ // verificador de senha/usuario
+  char antigo[100][2][15];
+  int i = 0;
+  FILE *arqv = fopen("arquivo_palavra", "r");
+  while (fscanf(arqv, "%14s %14s", antigo[i][0], antigo[i][1]) == 2)
+  {
+    antigo[i][0][14] = '\0';
+    antigo[i][1][14] = '\0';
+    descripto(antigo[i][0], antigo[i][1]);
+    if (strcmp(compare, antigo[i][tipo]) == 0)
+    {
+      if (tipo == 0)
+      {
+        printf("login ja existente");
+        return 1;
+      }
+      else
+      {
+        printf("senha ja existente");
+        return 1;
+      }
+    }
+    i++;
+  }
+  if (strlen(compare) < 8)
+  {
+    if (tipo == 0)
+    {
+      printf("login curto");
+    }
+    else
+    {
+      printf("senha curta");
+    }
+    return 1;
+  }
+  else if (strlen(compare) > 8)
+  {
+    if (tipo == 0)
+    {
+      printf("login longo");
+    }
+    else
+    {
+      printf("senha longa");
+    }
+    return 1;
+  }
+  else
+  {
+    return 0;
+  } // 0 certo, 1 ja existe essa senha ou esse usuario, 2 senha curta, 3 senha maior que 8 digitos
+}
+//----------------------------------------------------------------------------------------------------
+void listar(int valor)
+{
+  FILE *arqv = fopen("arquivo_palavra", "r");
+  int i = 0, esc = 0, cont = 1, esclado = 1, j = 4;
+  char todos[100][2][9];
+  char login[15], senha[15];
+  while (fscanf(arqv, "%14s %14s",login,senha) == 2)
+  {
+    login[14] = '\0';
+    senha[14] = '\0';
+    descripto(login,senha);
+    strncpy(todos[i][0],login,8);
+    strncpy(todos[i][1],senha,8);
+    todos[i][0][8] = '\0';
+    todos[i][1][8] = '\0';
+    i++;
+    valor++;
+  }
+  fclose(arqv);
+
+  while (1)
+  {
+    system("cls");
+    janela("", 1, 3, 1, 6, BLUE, 45, 124, 120, 120, 120, 120);
+    gotoxy(2, 2);
+    if (esclado == 2)
+    {
+      textbackground(BLUE);
+      textcolor(BLACK);
+      printf("SAIR ");
+      textbackground(BLACK);
+      textcolor(BLUE);
+    }
+    else if (esclado == 1)
+    {
+      textbackground(BLACK);
+      textcolor(BLUE);
+      printf("SAIR");
+    }
+    janela("LISTA", 2, 24, 36, 78, BLUE, 196, 179, 218, 191, 192, 217);
+    if (valor == 0)
+    {
+      gotoxy(37, 8);
+      textbackground(BLACK);
+      textcolor(RED);
+      printf(" SEM USUARIOS CADASTROS ");
+      textbackground(BLACK);
+      textcolor(BLUE);
+    }
+    else
+    {
+      if (arqv == NULL)
+      {
+        gotoxy(37, 8);
+        printf("Sem arquivo");
+      }
+    }
+    cont = esc;
+    j = 4;
+    for (i = esc; i < esc + 18; i++)
+    {
+      if (esc == i && esclado == 1)
+      {
+        textbackground(BLUE);
+        textcolor(BLACK);
+      }
+      else
+      {
+        textbackground(BLACK);
+        textcolor(BLUE);
+      }
+      if (i < valor)
+      {
+        if (cont < 10)
+        {
+          gotoxy(38, j);
+          printf(" 0%d. Usuario: %s Senha: ********\n", cont, todos[i][0]);
+        }
+        else
+        {
+          gotoxy(38, j);
+          printf(" %d. Usuario: %s Senha: ******** \n", cont, todos[i][0]);
+        }
+      }
+      cont++;
+      j++;
+    }
+    char ch = getch();
+    if (esclado == 1 && (ch == 'w' || ch == 'W') && esc >= 1)
+      esc--;
+    else if (esclado == 1 && (ch == 's' || ch == 'S') && esc < valor - 1)
+      esc++; // Tecla 's' para baixo
+    else if ((ch == 'a' || ch == 'A') && esclado == 1)
+      esclado++;
+    else if ((ch == 'd' || ch == 'D') && esclado == 2)
+      esclado--;
+    else if (ch == '\r')
+      break; // Enter para selecionar
+  }
+
+  if (esclado == 2)
+  {
+    return front_inicio();
+  }
+  else
+  {
+    return listar(0);
+  }
+}
+//------------------------------------------------------------------------------------------------
+void edit_exclu(int troca)
+{
+  FILE *arqv = fopen("arquivo_palavra", "r");
+  char todos[100][2][9];
+  char login[9], senha[9];
+  int valor = 0;
+  int i = 0, esc = 0, cont = 1, esclado = 1, j = 4, k;
+   while (fscanf(arqv, "%14s %14s",login,senha) == 2)
+  {
+    login[14] = '\0';
+    senha[14] = '\0';
+    descripto(login,senha);
+    strncpy(todos[i][0],login,8);
+    strncpy(todos[i][1],senha,8);
+    todos[i][0][8] = '\0';
+    todos[i][1][8] = '\0';
+    i++;
+    valor++;
+  }
+  fclose(arqv); 
+  
+  while (1)
+  {
+    system("cls");
+    _setcursortype(_NOCURSOR);
+    gotoxy(1,7);
+    if (troca == 0)
+    {
+      janela("", 1, 3, 1, 6, GREEN, 45, 124, 120, 120, 120, 120);
+      gotoxy(2, 2);
+      if (esclado == 2)
+      {
+        textbackground(GREEN);
+        textcolor(BLACK);
+        printf("SAIR ");
+        textbackground(BLACK);
+        textcolor(WHITE);
+      }
+      else if (esclado != 2)
+      {
+        textbackground(BLACK);
+        textcolor(GREEN);
+        printf("SAIR");
+      }
+      janela("EDITAR", 2, 24, 36, 78, GREEN, 196, 179, 218, 191, 192, 217);
+    }
+    else if (troca == 1)
+    {
+      janela("", 1, 3, 1, 6, YELLOW, 45, 124, 120, 120, 120, 120);
+      gotoxy(2, 2);
+      if (esclado == 2)
+      {
+        textbackground(YELLOW);
+        textcolor(BLACK);
+        printf("SAIR ");
+        textbackground(BLACK);
+        textcolor(WHITE);
+      }
+      else if (esclado != 2)
+      {
+        textbackground(BLACK);
+        textcolor(YELLOW);
+        printf("SAIR");
+      }
+      janela("EXCLUIR", 2, 24, 36, 78, YELLOW, 196, 179, 218, 191, 192, 217);
+    }
+    if (valor == 0)
+    {
+      gotoxy(37, 8);
+      textbackground(BLACK);
+      textcolor(RED);
+      printf(" SEM USUARIOS CADASTROS ");
+      textbackground(BLACK);
+      textcolor(WHITE);
+    }
+    else
+    {
+      if (arqv == NULL)
+      {
+        gotoxy(37, 8);
+        printf("Sem arquivo");
+      }
+    }
+    cont = esc;
+    j = 4;
+    for (i = esc; i < esc + 18; i++)
+    {
+      if (troca == 0)
+      {
+        if (esc == i && esclado == 1)
+        {
+          textbackground(GREEN);
+          textcolor(BLACK);
+        }
+        else
+        {
+          textbackground(BLACK);
+          textcolor(GREEN);
+        }
+      }
+      else if (troca == 1)
+      {
+        if (esc == i && esclado == 1)
+        {
+          textbackground(YELLOW);
+          textcolor(BLACK);
+        }
+        else
+        {
+          textbackground(BLACK);
+          textcolor(YELLOW);
+        }
+      }
+      if (i < valor)
+      {
+        if (cont < 10)
+        {
+          gotoxy(38, j);
+          printf(" 0%d. Usuario: %s Senha:******** \n", cont, todos[i][0]);
+        }
+        else
+        {
+          gotoxy(38, j);
+          printf(" %d. Usuario: %s Senha: ******** \n", cont, todos[i][0]);
+        }
+      }
+      cont++;
+      j++;
+    }
+
+    char ch = getch();
+    if (esclado == 1 && (ch == 'w' || ch == 'W') && esc >= 1)
+      esc--;
+    else if (esclado == 1 && (ch == 's' || ch == 'S') && esc < valor - 1)
+      esc++; // Tecla 's' para baixo
+    else if ((ch == 'a' || ch == 'A') && esclado < 2)
+      esclado++;
+    else if ((ch == 'd' || ch == 'D') && esclado > 1)
+      esclado--;
+    else if (ch == '\r')
+      break; // Enter para selecionar
+  }
+  if (troca == 0)
+  {
+    if (esclado == 2)
+    {
+      return front_inicio();
+    }
+    else if (esclado == 1)
+    {
+      return edit_mudar(esc);
+    }
+  }
+  if (troca == 1)
+  {
+    if (esclado == 2)
+    {
+      return front_inicio();
+    }
+    else if (esclado == 1)
+    {
+      int alternativa = 1;
+      while (1)
+      {
+        janela("Deseja Mesmo Excluir?", 11, 15, 2, 34, YELLOW, 196, 179, 218, 191, 192, 217);
+        janela("", 14, 16, 3, 7, YELLOW, 45, 124, 120, 120, 120, 120);
+        gotoxy(4, 15);
+        if (alternativa == 0)
+        {
+          textbackground(YELLOW);
+          textcolor(BLACK);
+          printf("SIM ");
+          textbackground(BLACK);
+          textcolor(WHITE);
+        }
+        else if (alternativa != 0)
+        {
+          textbackground(BLACK);
+          textcolor(YELLOW);
+          printf("SIM ");
+        }
+        janela("", 14, 16, 29, 33, YELLOW, 45, 124, 120, 120, 120, 120);
+        gotoxy(30, 15);
+        if (alternativa == 1)
+        {
+          textbackground(YELLOW);
+          textcolor(BLACK);
+          printf("NAO ");
+          textbackground(BLACK);
+          textcolor(YELLOW);
+        }
+        else if (alternativa != 1)
+        {
+          textbackground(BLACK);
+          textcolor(YELLOW);
+          printf("NAO ");
+        }
+        char ch = getch();
+        if ((ch == 'a' || ch == 'A') && alternativa == 1)
+          alternativa--;
+        else if ((ch == 'd' || ch == 'D') && alternativa == 0)
+          alternativa++;
+        else if (ch == '\r')
+          break;
+      }
+      if (alternativa == 0)
+        return excluir(esc);
+      else
+        return edit_exclu(1);
+    }
+  }
+}
+//----------------------------------------------------------------
+void edit_mudar(int valor)
+{
+  FILE *arqv = fopen("arquivo_palavra", "r");
+  int i = 0, esc = 0;
+  char todos[100][2][15];
+  char cadastrar[9];
+  int verify;
+
+  while (fscanf(arqv, "%14s %14s", todos[i][0], todos[i][1]) == 2)
+  {
+    todos[i][0][14] = '\0';
+    todos[i][1][14] = '\0';
+    descripto(todos[i][0], todos[i][1]);
+    i++;
+  }
+  fclose(arqv);
+
+  // fazer a parte visual de como vai ficar a moldura e td
+  while (1)
+  {
+    _setcursortype(_NOCURSOR);
+    janela("DESEJA MUDAR", 5, 9, 2, 16, GREEN, 45, 124, 120, 120, 120, 120);
+    gotoxy(3, 6);
+    if (esc == 0)
+    {
+      textbackground(GREEN);
+      textcolor(BLACK);
+    }
+    else
+    {
+      textbackground(BLACK);
+      textcolor(GREEN);
+    }
+    printf("LOGIN     ");
+
+    gotoxy(3, 7);
+    if (esc == 1)
+    {
+      textbackground(GREEN);
+      textcolor(BLACK);
+    }
+    else
+    {
+      textbackground(BLACK);
+      textcolor(GREEN);
+    }
+    printf("SENHA     ");
+
+    gotoxy(3, 8);
+    if (esc == 2)
+    {
+      textbackground(GREEN);
+      textcolor(BLACK);
+    }
+    else
+    {
+      textbackground(BLACK);
+      textcolor(GREEN);
+    }
+    printf("VOLTAR    ");
+
+    textbackground(BLACK);
+    textcolor(GREEN);
+
+    char ch = getch();
+    if ((ch == 's' || ch == 'S') && esc < 2)
+      esc++;
+    else if ((ch == 'w' || ch == 'W') && esc > 0)
+      esc--;
+    else if (ch == '\r')
+      break;
+  }
+  switch (esc)
+  {
+  case 0:
+    janela("digite o novo login", 11, 14, 2, 34, GREEN, 196, 179, 218, 191, 192, 217);
+    printf("\n");
+    _setcursortype(_NORMALCURSOR);
+    do
+    {
+      gotoxy(3, 12);
+      printf("              ");
+      gotoxy(3, 12);
+      gets(cadastrar);
+      gotoxy(3, 13);
+      verify = verif(cadastrar, 0);
+    } while (verify != 0);
+    if (verify == 0)
+    {
+      gotoxy(3, 13);
+      textcolor(GREEN);
+      printf("Mudanca feita!!");
+      reescrita(valor, cadastrar, 0);
+    }
+    _setcursortype(_NOCURSOR);
+    break;
+
+  case 1:
+    janela("digite a nova senha", 11, 14, 2, 34, GREEN, 196, 179, 218, 191, 192, 217);
+    printf("\n");
+    _setcursortype(_NORMALCURSOR);
+    do
+    {
+      gotoxy(3, 12);
+      printf("              ");
+      gotoxy(3, 12);
+      gets(cadastrar);
+      gotoxy(3, 13);
+      verify = verif(cadastrar, 1);
+    } while (verify != 0);
+    if (verify == 0)
+    {
+      gotoxy(3, 13);
+      textcolor(GREEN);
+      printf("Mudanca feita!!");
+      reescrita(valor, cadastrar, 1);
+    }
+    _setcursortype(_NOCURSOR);
+    break;
+
+  case 2:
+    return edit_exclu(0);
+    break;
+  }
+}
+//-----------------------------------------------------------------------------
+void reescrita(int val, char *neww, int esc)
+{
+  FILE *arqv = fopen("arquivo_palavra", "r");
+  int i = 0, users = 0;
+  char todos[100][2][15];
+
+  while (fscanf(arqv, "%14s %14s", todos[i][0], todos[i][1]) == 2)
+  { // salva tudo no vetor
+    todos[i][0][14] = '\0';
+    todos[i][1][14] = '\0';
+    descripto(todos[i][0], todos[i][1]);
+    i++;
+    users++;
+  }
+  fclose(arqv);
+  fopen("arquivo_palavra", "w");
+  strcpy(todos[val][esc], neww);
+	
+  for (i = 0; i <= users - 1; i++)
+  {
+    cripto(todos[i][0], todos[i][1]);
+  }
+  fclose(arqv);
+  return edit_exclu(0);
+}
+//------------------------------------------------------------------------------------
+void excluir(int local)
+{
+  FILE *arqv = fopen("arquivo_palavra", "r");
+  int i = 0, users = 0;
+  char todos[100][2][15];
+  // cntrl + shift + L
+  while (fscanf(arqv, "%15s %15s", todos[i][0], todos[i][1]) == 2)
+  {
+    todos[i][0][14] = '\0';
+    todos[i][1][14] = '\0';
+    users++;
+    i++;
+  }
+  fclose(arqv);
+  for (i = local; i < users - 1; i++)
+  {
+    strcpy(todos[i][0], todos[i + 1][0]);
+    strcpy(todos[i][1], todos[i + 1][1]);
+  }
+  todos[users - 1][0][14] = '\0';
+  todos[users - 1][1][14] = '\0';
+
+  fopen("arquivo_palavra", "w");
+  for (i = 0; i < users - 1; i++)
+  {
+    fprintf(arqv, "%14s %14s\n", todos[i][0], todos[i][1]);
+  }
+  fclose(arqv);
+  return edit_exclu(1);
+}
+//------------------------------------------------------------------------------------
